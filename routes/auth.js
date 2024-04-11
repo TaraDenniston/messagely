@@ -1,7 +1,9 @@
 const express = require('express');
-const User = require('../models/user');
+const jwt = require('jsonwebtoken');
 const router = new express.Router();
+const User = require('../models/user');
 const ExpressError = require('../expressError');
+const { SECRET_KEY } = require('../config');
 
 
 /** POST /login - login: {username, password} => {token}
@@ -11,15 +13,26 @@ const ExpressError = require('../expressError');
  **/
 router.post('/login', async (req, res, next) => {
   try{
+    // Make sure request body has needed data
     const { username, password } = req.body;
     if (!username || !password) {
       throw new ExpressError('Username and password required', 400);
     }
+
+    // If user is authenticated 
     if (await User.authenticate(username, password)) {
-      return res.json('Login successful');
+      // Update last login
+      await User.updateLoginTimestamp(user.username);
+
+      // Generate and return JSON web token
+      const token = jwt.sign({ username }, SECRET_KEY);
+      return res.json({ message: 'Login successful', token });
+
+    // Throw error if user is not authenticated
     } else {
-      throw new ExpressError('Pssword is incorrect', 400);
+      throw new ExpressError('Username/password is incorrect', 400);
     }
+
   } catch (e) {
     return next(e);
   }
@@ -34,18 +47,16 @@ router.post('/login', async (req, res, next) => {
  */
 router.post('/register', async (req, res, next) => {
   try {
-    console.log('Inside /register route')
     // Register user
     const user = await User.register(req.body);
-    console.log('/register - user:')
-    console.log(user);
+
     // Update last login
-    const timeStamp = await User.updateLoginTimestamp(user.username);
-    console.log('/register - timeStamp:')
-    console.log(timeStamp);
-    // Create token (to be implemented)
-    // Return token (to be implemented)
-    return res.json('User Registered');
+    await User.updateLoginTimestamp(user.username);
+
+    // Generate and return JSON web token
+    const token = jwt.sign({ username }, SECRET_KEY);
+    return res.json({ message: 'User Registered', token });
+
   } catch (e) {
     if (e.code === '23505') {
       return next(new ExpressError('Username already exists', 400));
