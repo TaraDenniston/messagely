@@ -3,6 +3,7 @@ const db = require("../db");
 const bcrypt = require('bcrypt');
 const { BCRYPT_WORK_FACTOR } = require('../config');
 const res = require("express/lib/response");
+const ExpressError = require("../expressError");
 
 
 /** User of the site. */
@@ -15,33 +16,41 @@ class User {
    *  -- returns
    *    {id, username, first_name, last_name, phone} */
   static async register({username, password, first_name, last_name, phone}) {
-    console.log('Inside User.register()');
     const hashedPassword = await bcrypt.hash(password, BCRYPT_WORK_FACTOR);
     const results = await db.query(
-      `INSERT INTO users (
-          username, 
-          password, 
-          first_name, 
-          last_name, 
-          phone,
-          join_at)
+      `INSERT INTO users (username, password, first_name, last_name, 
+          phone, join_at)
         VALUES($1, $2, $3, $4, $5, current_timestamp)
         RETURNING username, first_name, last_name, phone`,
       [username, hashedPassword, first_name, last_name, phone]
     );
-    console.log('User.register - results.rows[0]:')
-    console.log(results.rows[0]);
     return results.rows[0];
   }
 
-  /** Authenticate: is this username/password valid? Returns boolean. */
 
-  static async authenticate(username, password) { }
+  /** Authenticate: is this username/password valid? Returns boolean. */
+  static async authenticate(username, password) { 
+    // Look up user in the database
+    const results = await db.query(
+      `SELECT username, password
+        FROM users
+        WHERE username = $1`,
+      [username]
+    );
+    const user = results.rows[0];
+
+    if (user) {
+      // If user exists, check to see if password is valid
+      return await bcrypt.compare(password, user.password);
+    } else {
+      // If user does not exist, throw error
+      throw new ExpressError('User does not exist', 400);
+    } 
+  }
+
 
   /** Update last_login_at for user */
-
   static async updateLoginTimestamp(username) {
-    console.log('Inside User.updateLoginTimestamp()');
     const results = await db.query(
       `UPDATE users 
         SET last_login_at = current_timestamp
@@ -49,8 +58,6 @@ class User {
         RETURNING username, last_login_at`,
       [username]
     );
-    console.log(results.rows[0]);
-    console.log('User.updateLoginTimestamp - results.rows[0]:')
     return results.rows[0];
   }
 
