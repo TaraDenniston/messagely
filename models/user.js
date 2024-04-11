@@ -44,7 +44,7 @@ class User {
       return await bcrypt.compare(password, user.password);
     } else {
       // If user does not exist, throw error
-      throw new ExpressError('User does not exist', 400);
+      throw new ExpressError('Username/password is incorrect', 400);
     } 
   }
 
@@ -63,8 +63,13 @@ class User {
 
   /** All: basic info on all users:
    * [{username, first_name, last_name, phone}, ...] */
-
-  static async all() { }
+  static async all() {
+    const results = await db.query(
+      `SELECT username, first_name, last_name, phone
+        FROM users`
+    );
+    return results.rows;
+  }
 
   /** Get: get user by username
    *
