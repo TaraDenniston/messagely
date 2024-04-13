@@ -22,7 +22,7 @@ router.post('/login', async (req, res, next) => {
     // If user is authenticated 
     if (await User.authenticate(username, password)) {
       // Update last login
-      await User.updateLoginTimestamp(user.username);
+      await User.updateLoginTimestamp(username);
 
       // Generate and return JSON web token
       const token = jwt.sign({ username }, SECRET_KEY);
@@ -54,7 +54,7 @@ router.post('/register', async (req, res, next) => {
     await User.updateLoginTimestamp(user.username);
 
     // Generate and return JSON web token
-    const token = jwt.sign({ username }, SECRET_KEY);
+    const token = jwt.sign({ username: user.username }, SECRET_KEY);
     return res.json({ message: 'User Registered', token });
 
   } catch (e) {
