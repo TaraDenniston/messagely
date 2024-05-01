@@ -1,4 +1,5 @@
 /** User class for message.ly */
+
 const db = require("../db");
 const bcrypt = require('bcrypt');
 const { BCRYPT_WORK_FACTOR } = require('../config');
@@ -61,6 +62,7 @@ class User {
     return results.rows[0];
   }
 
+
   /** All: basic info on all users:
    * [{username, first_name, last_name, phone}, ...] */
   static async all() {
@@ -71,6 +73,7 @@ class User {
     return results.rows;
   }
 
+
   /** Get: get user by username
    *
    * returns {username,
@@ -79,8 +82,20 @@ class User {
    *          phone,
    *          join_at,
    *          last_login_at } */
+  static async get(username) {
+    const results = await db.query(
+      `SELECT username, first_name, last_name, phone,
+              join_at, last_login_at
+        FROM users
+        WHERE username = $1`,
+      [username]
+    );
+    if (results.rows.length === 0) {
+      throw new ExpressError(`User "${username}" does not exist`, 400)
+    }
+    return results.rows[0];
+  }
 
-  static async get(username) { }
 
   /** Return messages from this user.
    *
