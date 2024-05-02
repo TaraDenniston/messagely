@@ -17,16 +17,21 @@ const { ensureLoggedIn } = require('../middleware/auth')
  *
  **/
 router.get('/:id', ensureLoggedIn, async (req, res, next) => {
-  const id = req.params.id;
-  const message = await Message.get(id);
+  try {
+    const id = req.params.id;
+    const message = await Message.get(id);
 
-  // Throw error if the logged-in user is not either the sender or recipient
-  if(!(message.from_user === req.user.username || 
-      message.to_user === req.user.username)) {
-    throw new ExpressError(`User is unauthorized to access message ${id})`, 401);
-  }
+    // Throw error if the logged-in user is not either the sender or recipient
+    if(!(message.from_user.username === req.user.username || 
+         message.to_user.username === req.user.username)) {
+      throw new ExpressError(`User is unauthorized to access message ${id}`, 401);
+    }
 
-  return res.json({ message: message });
+    return res.json({ message: message });
+
+  } catch (e) {
+    return next(e);
+  }  
 });
 
 
@@ -37,10 +42,16 @@ router.get('/:id', ensureLoggedIn, async (req, res, next) => {
  *
  **/
 router.post('/', ensureLoggedIn, async (req, res, next) => {
-  const from_username = req.user.username;
-  const { to_username, body } = req.body;
-  const message = await Message.create({from_username, to_username, body});
-  return res.json({ message: message });
+  try {
+    const from_username = req.user.username;
+    const { to_username, body } = req.body;
+    const message = await Message.create({from_username, to_username, body});
+    
+    return res.json({ message: message });
+
+  } catch (e) {
+    return next(e);
+  }  
 });
 
 
