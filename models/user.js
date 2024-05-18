@@ -102,10 +102,24 @@ class User {
    * [{id, to_user, body, sent_at, read_at}]
    *
    * where to_user is
-   *   {username, first_name, last_name, phone}
-   */
-
-  static async messagesFrom(username) { }
+   *   {username, first_name, last_name, phone}  */
+  static async messagesFrom(username) {
+    const userResults = await db.query(
+      `SELECT username, first_name, last_name, phone
+        FROM users
+        WHERE username = $1`, 
+      [username]
+    );
+    const messageResults = await db.query(
+      `SELECT id, body, sent_at, read_at
+        FROM messages
+        WHERE from_username = $1`,
+      [username]
+    );
+    const messages = messageResults.rows;
+    messages.to_user = userResults.rows;
+    return messages;
+  }
 
   /** Return messages to this user.
    *
