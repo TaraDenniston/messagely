@@ -3,7 +3,6 @@ const router = new express.Router();
 const Message = require('../models/message');
 const ExpressError = require('../expressError');
 const { ensureLoggedIn } = require('../middleware/auth');
-const { messagesFrom } = require('../models/user');
 
 /** GET /:id - get detail of message.
  *
@@ -65,10 +64,8 @@ router.post('/', ensureLoggedIn, async (req, res, next) => {
  **/
 router.post('/:id/read', async (req, res, next) => {
   try {
-    console.log('Inside POST route /:id/read');
     const id = req.params.id;
     const message = await Message.get(id);
-    console.log(message);
 
     if (message.to_user.username !== req.user.username) {
       throw new ExpressError(`User is unauthorized to access message ${id}`, 401);
