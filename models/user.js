@@ -144,10 +144,41 @@ class User {
    * [{id, from_user, body, sent_at, read_at}]
    *
    * where from_user is
-   *   {username, first_name, last_name, phone}
-   */
+   *   {username, first_name, last_name, phone}   */
+  static async messagesTo(username) {
 
-  static async messagesTo(username) { }
+    // Get list of messages sent to user
+    const messageResults = await db.query(
+      `SELECT id, from_username, body, sent_at, read_at
+        FROM messages
+        WHERE to_username = $1`,
+      [username]
+    );
+
+    // From list of messages, create promises for the 
+    // user each message was sent from
+    const userPromises = messageResults.rows.map(row => {
+      const results = db.query(
+        `SELECT username, first_name, last_name, phone
+          FROM users
+          WHERE username = $1`, 
+        [row.from_username]
+      );
+      return results;
+    });
+
+    // Get results from all of the prmises
+    const resultsArray = await Promise.all(userPromises);
+    const users = resultsArray.map(result => result.rows[0]);
+
+    // Match the users to the messages
+    return messageResults.rows.map((message, i) => {
+      let newMessage = { ...message };
+      delete newMessage.from_username;
+      newMessage.from_user = users[i];
+      return newMessage;
+    });    
+  }
 }
 
 
